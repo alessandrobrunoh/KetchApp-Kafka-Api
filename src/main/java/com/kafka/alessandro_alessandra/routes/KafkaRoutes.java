@@ -3,8 +3,12 @@ package com.kafka.alessandro_alessandra.routes;
 import com.kafka.alessandro_alessandra.kafka.KafkaProducer;
 import com.kafka.alessandro_alessandra.model.ErrorResponse;
 import com.kafka.alessandro_alessandra.model.MessageRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -28,13 +32,24 @@ public class KafkaRoutes {
         this.kafkaProducer = kafkaProducer;
     }
 
-    /**
-     * Sends a formatted message to a Kafka topic using the provided email as a path variable.
-     *
-     * @param email          the recipient's email address extracted from the path variable
-     * @param messageRequest the message payload to be sent, validated via @Valid
-     * @return ResponseEntity containing the result of the operation (success or error)
-     */
+
+    @Operation(
+        summary = "Send a formatted message to a specified email address",
+        description = "This endpoint sends a formatted study session summary email to the specified recipient. " +
+                "The email will include a detailed breakdown of Pomodoro sessions, study and pause times, and statistics. " +
+                "The request body must contain a valid MessageRequest object with all required session and subject data. " +
+                "Returns a success response with the email and data sent, or an error response if the operation fails."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Message sent successfully",
+                    content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "400", description = "Bad Request - Validation failed",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "Internal Server Error - Failed to send message",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @PostMapping("/{mail}")
     public ResponseEntity<Object> sendFormattedMessage(
             @PathVariable("mail") String email,

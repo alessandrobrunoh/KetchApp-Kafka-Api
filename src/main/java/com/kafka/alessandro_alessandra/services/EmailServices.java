@@ -23,13 +23,21 @@ public class EmailServices {
         this.mailSender = mailSender;
     }
 
+    /**
+     * Sends an HTML email to the specified recipient.
+     *
+     * @param to       the recipient's email address
+     * @param subject  the subject of the email
+     * @param htmlBody the HTML content of the email
+     * @throws MessagingException if sending the email fails
+     */
     public void sendHtmlEmail(String to, String subject, String htmlBody) throws MessagingException {
         try {
             log.info("Preparing to send HTML email to: {}", to);
-            
+
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            
+
             helper.setFrom(fromEmail);
             helper.setTo(to);
             helper.setSubject(subject);
