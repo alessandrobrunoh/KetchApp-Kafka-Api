@@ -28,7 +28,7 @@ public class MessageRequest {
     @AllArgsConstructor
     @Builder
     public static class CalendarEvent {
-        private String name;
+        private String title;
         private LocalDateTime start_at;
         private LocalDateTime end_at;
     }

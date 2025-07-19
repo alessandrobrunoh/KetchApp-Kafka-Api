@@ -29,17 +29,11 @@ public class KafkaRoutes {
     }
 
     /**
-     * Sends a formatted message to Kafka with email and MessageRequest data.
+     * Sends a formatted message to a Kafka topic using the provided email as a path variable.
      *
-     * @param email          The recipient email address
-     * @param messageRequest The message request containing name and value
-     * @return A ResponseEntity with a confirmation message or error details
-     *
-     * This endpoint expects a JSON body with "name" and "value" fields.
-     * Example: {
-     *   "name": "exampleName",
-     *   "value": 123
-     * }
+     * @param email          the recipient's email address extracted from the path variable
+     * @param messageRequest the message payload to be sent, validated via @Valid
+     * @return ResponseEntity containing the result of the operation (success or error)
      */
     @PostMapping("/{mail}")
     public ResponseEntity<Object> sendFormattedMessage(
@@ -59,6 +53,12 @@ public class KafkaRoutes {
         }
     }
 
+    /**
+     * Handles exceptions thrown during request processing, such as validation errors.
+     *
+     * @param ex the exception that was thrown
+     * @return ResponseEntity containing an ErrorResponse with error details and HTTP 400 status
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(Exception ex) {
         ErrorResponse errorResponse = new ErrorResponse("error", "Validation failed", ex.getMessage());
