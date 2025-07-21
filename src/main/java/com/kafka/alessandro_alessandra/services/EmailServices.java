@@ -3,6 +3,7 @@ package com.kafka.alessandro_alessandra.services;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -31,12 +32,17 @@ public class EmailServices {
      * @param htmlBody the HTML content of the email
      * @throws MessagingException if sending the email fails
      */
-    public void sendHtmlEmail(String to, String subject, String htmlBody) throws MessagingException {
+    public void sendHtmlEmail(String to, String subject, String htmlBody)
+        throws MessagingException {
         try {
             log.info("Preparing to send HTML email to: {}", to);
 
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(
+                message,
+                true,
+                "UTF-8"
+            );
 
             helper.setFrom(fromEmail);
             helper.setTo(to);
