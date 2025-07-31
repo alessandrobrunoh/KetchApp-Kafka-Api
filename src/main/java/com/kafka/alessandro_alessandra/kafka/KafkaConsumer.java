@@ -8,6 +8,7 @@ import com.kafka.alessandro_alessandra.model.MessageRequest.Subject.Tomato;
 import com.kafka.alessandro_alessandra.model.PomodoroStats;
 import com.kafka.alessandro_alessandra.model.PomodoroSubjectStats;
 import com.kafka.alessandro_alessandra.model.TomatoStats;
+import com.kafka.alessandro_alessandra.services.EmailSchedulerService;
 import com.kafka.alessandro_alessandra.services.EmailServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,6 +18,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.mail.MessagingException;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class KafkaConsumer {
@@ -28,14 +33,10 @@ public class KafkaConsumer {
     @Value("${app.mail.default-recipient}")
     private String defaultRecipient;
 
-    private final EmailServices emailService;
-    private final ObjectMapper objectMapper;
-
     @Autowired
-    public KafkaConsumer(EmailServices emailService, ObjectMapper objectMapper) {
-        this.emailService = emailService;
-        this.objectMapper = objectMapper;
-    }
+    private EmailServices emailService;
+    private EmailSchedulerService emailSchedulerService;
+    private ObjectMapper objectMapper;
 
     /**
      * Consumes messages from the configured Kafka topic.
@@ -85,11 +86,25 @@ public class KafkaConsumer {
 
             MessageRequest messageRequest = objectMapper.readValue(jsonData, MessageRequest.class);
 
+            // Schedula una mail per ogni pomodoro 15 minuti prima dell'inizio, in modo più leggibile e robusto
+            Optional.ofNullable(messageRequest.getSubjects())
+                    .stream()
+                    .flatMap(List::stream)
+                    .filter(subject -> subject.getTomatoes() != null && !subject.getTomatoes().isEmpty())
+                    .flatMap(subject -> subject.getTomatoes().stream()
+                            .filter(tomato -> tomato.getStartAt() != null)
+                            .map(tomato -> new PomodoroMailInfo(email, subject.getName(), tomato.getStartAt())))
+                    .forEach(pomodoroInfo -> {
+                        LocalDateTime sendTime = pomodoroInfo.startTime().minusMinutes(15);
+                        String subjectMail = "Promemoria sessione di studio";
+                        String body = "Tra 15 minuti inizia la sessione di studio di " + pomodoroInfo.subjectName() + ". Buono studio!";
+                        emailSchedulerService.scheduleEmail(pomodoroInfo.email(), subjectMail, body, sendTime);
+                    });
+
+            // Invia comunque la mail di riepilogo come prima
             String subject = "Today Study Session Summary";
             String htmlBody = formatHtmlEmailBody(messageRequest);
-
             emailService.sendHtmlEmail(email, subject, htmlBody);
-
             log.info("Formatted HTML email sent to: {}", email);
         } catch (JsonProcessingException e) {
             log.error("Error processing JSON data: {}", e.getMessage(), e);
@@ -203,11 +218,11 @@ public class KafkaConsumer {
      * @return TomatoStats containing study and pause minutes
      */
     private TomatoStats calculateTomatoStats(Tomato tomato) {
-        if (tomato.getStart_at() != null && tomato.getEnd_at() != null) {
-            long studyMinutes = java.time.Duration.between(tomato.getStart_at(), tomato.getEnd_at()).toMinutes();
+        if (tomato.getStartAt() != null && tomato.getEndAt() != null) {
+            long studyMinutes = java.time.Duration.between(tomato.getStartAt(), tomato.getEndAt()).toMinutes();
             long pauseMinutes = 0;
-            if (tomato.getPause_end_at() != null) {
-                pauseMinutes = java.time.Duration.between(tomato.getStart_at(), tomato.getPause_end_at()).toMinutes();
+            if (tomato.getPauseEndAt() != null) {
+                pauseMinutes = java.time.Duration.between(tomato.getStartAt(), tomato.getPauseEndAt()).toMinutes();
             }
             return new TomatoStats(studyMinutes, pauseMinutes);
         }
@@ -292,16 +307,16 @@ public class KafkaConsumer {
         StringBuilder html = new StringBuilder();
         html.append("<div class='tomato-card'>");
         html.append("<p><b>Pomodoro #").append(tomatoCount).append("</b></p>");
-        if (tomato.getStart_at() != null && tomato.getEnd_at() != null) {
-            String date = tomato.getStart_at().format(dateFormatter);
-            String startTime = tomato.getStart_at().format(timeFormatter);
-            String endTime = tomato.getEnd_at().format(timeFormatter);
-            long minutes = java.time.Duration.between(tomato.getStart_at(), tomato.getEnd_at()).toMinutes();
+        if (tomato.getStartAt() != null && tomato.getEndAt() != null) {
+            String date = tomato.getStartAt().format(dateFormatter);
+            String startTime = tomato.getStartAt().format(timeFormatter);
+            String endTime = tomato.getEndAt().format(timeFormatter);
+            long minutes = java.time.Duration.between(tomato.getStartAt(), tomato.getEndAt()).toMinutes();
             html.append("<p>").append(date).append(" | ").append(startTime).append(" - ").append(endTime).append("</p>");
             html.append("<p>Duration: <b>").append(minutes).append(" min</b></p>");
-            if (tomato.getPause_end_at() != null) {
-                String pauseEndTime = tomato.getPause_end_at().format(timeFormatter);
-                long pauseMinutes = java.time.Duration.between(tomato.getStart_at(), tomato.getPause_end_at()).toMinutes();
+            if (tomato.getPauseEndAt() != null) {
+                String pauseEndTime = tomato.getPauseEndAt().format(timeFormatter);
+                long pauseMinutes = java.time.Duration.between(tomato.getStartAt(), tomato.getPauseEndAt()).toMinutes();
                 html.append("<p>Pause until: ").append(pauseEndTime).append(" (").append(pauseMinutes).append(" min)</p>");
             }
         }
@@ -340,4 +355,7 @@ public class KafkaConsumer {
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
     }
+
+    // Classe record di supporto per migliorare la leggibilità
+    record PomodoroMailInfo(String email, String subjectName, LocalDateTime startTime) {}
 }

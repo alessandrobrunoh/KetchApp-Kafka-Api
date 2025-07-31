@@ -16,10 +16,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class MessageRequest {
-    
+
     @Valid
     private List<CalendarEvent> calendar;
-    
+
     @Valid
     private List<Subject> subjects;
 
@@ -29,8 +29,8 @@ public class MessageRequest {
     @Builder
     public static class CalendarEvent {
         private String title;
-        private LocalDateTime start_at;
-        private LocalDateTime end_at;
+        private LocalDateTime startAt;
+        private LocalDateTime endAt;
     }
 
     @Data
@@ -46,9 +46,9 @@ public class MessageRequest {
         @AllArgsConstructor
         @Builder
         public static class Tomato {
-            private LocalDateTime start_at;
-            private LocalDateTime end_at;
-            private LocalDateTime pause_end_at;
+            private LocalDateTime startAt;
+            private LocalDateTime endAt;
+            private LocalDateTime pauseEndAt;
         }
     }
 }
