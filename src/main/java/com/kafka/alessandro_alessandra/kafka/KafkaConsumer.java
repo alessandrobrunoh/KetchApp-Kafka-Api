@@ -177,30 +177,16 @@ public class KafkaConsumer {
                 "Orario attuale: " + java.time.LocalDateTime.now()
             );
 
-            // Invia la mail solo 15 minuti prima dell'inizio di ogni sessione
-            for (PomodoroMailInfo sessionStart : sessionStarts) {
-                LocalDateTime sendTime = sessionStart
-                    .startTime()
-                    .minusMinutes(15);
-                String subjectMail = "Promemoria sessione di studio";
-                String body =
-                    "Tra 15 minuti inizia la sessione di studio di " +
-                    sessionStart.subjectName() +
-                    ". Buono studio!";
-                emailSchedulerService.scheduleEmail(
-                    sessionStart.email(),
-                    subjectMail,
-                    body,
-                    sendTime
-                );
-            }
 
             // Invia la mail di riepilogo 15 minuti prima dell’inizio di ogni sessione
             for (PomodoroMailInfo sessionStart : sessionStarts) {
                 LocalDateTime sendTime = sessionStart
                     .startTime()
                     .minusMinutes(15);
-                String subject = "Today Study Session Summary";
+                String subject = "Tra 15 minuti, alle ore " +
+                        sessionStart.startTime().toLocalTime() +
+                        ", inizia la sessione di studio per " +
+                        sessionStart.subjectName();
                 String htmlBody = formatHtmlEmailBody(messageRequest);
                 System.out.println(
                     "Schedulo mail di riepilogo per " +
